@@ -17,6 +17,8 @@ public class ModItemGroups {
                     .icon(() -> new ItemStack(ModItems.arcStone)).entries((displayContext, entries) -> {
                         entries.add(ModItems.arcStone);
                         entries.add(ModBlocks.arcstoneBlock);
+                        entries.add(ModItems.cartridge);
+                        entries.add(ModItems.teleporter);
                     }).build());
 
     public static void registerItemGroups(){

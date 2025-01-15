@@ -3,5 +3,9 @@
 
   "itemgroup.simple_teleporters_group": "Simple Teleporters",
 
-  "block.simple_teleporters.arcstone_block" : "Arcstone block"
+  "block.simple_teleporters.arcstone_block" : "Arcstone block",
+
+  "item.simple_teleporters.cartridge" : "Cartridge",
+
+  "block.simple_teleporters.teleporter" : "Teleporter"
 }
