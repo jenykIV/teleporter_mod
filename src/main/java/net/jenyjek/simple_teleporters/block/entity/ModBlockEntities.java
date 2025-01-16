@@ -9,12 +9,11 @@ import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
 
 public class ModBlockEntities {
-    public static BlockEntityType<TeleporterBlockEntity> teleporterBlockEntity;
+    public static final BlockEntityType<TeleporterBlockEntity> teleporterBlockEntity = Registry.register(Registries.BLOCK_ENTITY_TYPE,
+            new Identifier(SimpleTeleporters.MOD_ID, "teleporter_block_entity"),FabricBlockEntityTypeBuilder.create(TeleporterBlockEntity::new,
+                    ModBlocks.teleporterBlock).build());
 
     public static void registerAllBlockEntities(){
-        teleporterBlockEntity = Registry.register(Registries.BLOCK_ENTITY_TYPE,
-                new Identifier(SimpleTeleporters.MOD_ID, "teleporter_block_entity"),
-                FabricBlockEntityTypeBuilder.create(TeleporterBlockEntity::new,
-                        ModBlocks.teleporterBlock).build());
+
     }
 }
