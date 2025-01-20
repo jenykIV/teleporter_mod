@@ -1,26 +1,22 @@
 package net.jenyjek.simple_teleporters.block.entity;
 
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
-import net.jenyjek.simple_teleporters.SimpleTeleporters;
 import net.jenyjek.simple_teleporters.item.ModItems;
 import net.jenyjek.simple_teleporters.screen.TeleporterScreenHandler;
-import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.entity.ItemEntity;
 import net.minecraft.item.Items;
-import net.minecraft.item.MinecartItem;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.Box;
-import net.minecraft.world.level.LevelInfo;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.Inventories;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.screen.NamedScreenHandlerFactory;
 import net.minecraft.screen.PropertyDelegate;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.text.Text;
@@ -34,32 +30,42 @@ import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache
 import software.bernie.geckolib.core.animatable.instance.SingletonAnimatableInstanceCache;
 import software.bernie.geckolib.core.animation.*;
 import software.bernie.geckolib.core.object.PlayState;
-import software.bernie.geckolib.util.RenderUtils;
 
-import java.util.List;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
 
-import static java.lang.Math.sqrt;
 
 public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity, ExtendedScreenHandlerFactory, ImplementedInventory {
 
-    private final DefaultedList<ItemStack> inventory = DefaultedList.ofSize(2, ItemStack.EMPTY);
+    private final DefaultedList<ItemStack> inventory = DefaultedList.ofSize(6, ItemStack.EMPTY);
     private AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
 
     protected final PropertyDelegate propertyDelegate;
     private int power;
     private int maxPower = 1000;
+    private int canTransferItems = 0;
     
     private int timeEntityOnBlock;
     private int timeTilEntityOnBlockTeleports = 100;
 
+    private enum States {idle, active, off, item}
+    private enum Upgrades{speed, cost, items}
+    private EnumSet<Upgrades> selectedUpgrades = EnumSet.noneOf(Upgrades.class);
+
+    private static final Map<BlockPos, States> animationStateForBlocks = new HashMap<>();
+
     public TeleporterBlockEntity( BlockPos pos, BlockState state) {
+
         super(ModBlockEntities.teleporterBlockEntity, pos, state);
+        setStateOfAnimations(States.off, this.getPos());
         this.propertyDelegate = new PropertyDelegate() {
             @Override
             public int get(int index) {
                 switch (index){
                     case 0: return TeleporterBlockEntity.this.power;
                     case 1: return TeleporterBlockEntity.this.maxPower;
+                    case 2: return TeleporterBlockEntity.this.canTransferItems;
                     default: return 0;
                 }
             }
@@ -69,34 +75,50 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
                 switch (index){
                     case 0: TeleporterBlockEntity.this.power = value; break;
                     case 1: TeleporterBlockEntity.this.maxPower = value; break;
+                    case 2: TeleporterBlockEntity.this.canTransferItems = value; break;
                 }
             }
 
             @Override
             public int size() {
-                return 2;
+                return 3;
             }
         };
     }
 
+    private States getStateOfAnimations(BlockPos pos){
+        return animationStateForBlocks.get(pos);
+    }
+
+    private void setStateOfAnimations(States to, BlockPos pos){
+        animationStateForBlocks.put(pos, to);
+    }
+
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllerRegistrar) {
-        controllerRegistrar.add(new AnimationController<>(this, "controller", 0, this::predicate));
+        controllerRegistrar.add(new AnimationController<>(this, "controller", 20, this::predicate));
     }
 
     private <T extends GeoAnimatable> PlayState predicate(AnimationState<T> tAnimationState) {
-        tAnimationState.getController().setAnimation(RawAnimation.begin().then("0", Animation.LoopType.LOOP));
-        return PlayState.CONTINUE;
+        if(getStateOfAnimations(this.getPos()) == States.off){
+            tAnimationState.getController().setAnimation(RawAnimation.begin().then("2", Animation.LoopType.LOOP));
+            return PlayState.CONTINUE;
+        } else if(getStateOfAnimations(this.getPos())  == States.idle){
+            tAnimationState.getController().setAnimation(RawAnimation.begin().then("0", Animation.LoopType.LOOP));
+            return PlayState.CONTINUE;
+        } else if (getStateOfAnimations(this.getPos())  == States.active) {
+            tAnimationState.getController().setAnimation(RawAnimation.begin().then("1", Animation.LoopType.HOLD_ON_LAST_FRAME));
+            return PlayState.CONTINUE;
+        } else if (getStateOfAnimations(this.getPos()) == States.item) {
+            tAnimationState.getController().setAnimation(RawAnimation.begin().then("3", Animation.LoopType.LOOP));
+            return PlayState.CONTINUE;
+        }
+        return PlayState.STOP;
     }
 
     @Override
     public AnimatableInstanceCache getAnimatableInstanceCache() {
         return cache;
-    }
-
-    @Override
-    public double getTick(Object blockEntity) {
-        return RenderUtils.getCurrentTick();
     }
 
     @Override
@@ -110,6 +132,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
         Inventories.writeNbt(nbt, inventory);
         nbt.putInt("teleporter.power", power);
         nbt.putInt("teleporter.maxPower", maxPower);
+        nbt.putInt("teleporter.canTransferItems", canTransferItems);
     }
 
     @Override
@@ -118,6 +141,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
         super.readNbt(nbt);
         power = nbt.getInt("teleporter.power");
         maxPower = nbt.getInt("teleporter.maxPower");
+        canTransferItems = nbt.getInt("teleporter.canTransferItems");
     }
 
     @Override
@@ -130,7 +154,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
         return new TeleporterScreenHandler(syncId, playerInventory, this, this.propertyDelegate);
     }
 
-    private static Entity EntityOnBlock(BlockPos pos, World world) {
+    private Entity EntityOnBlock(BlockPos pos, World world) {
         Box areaOfInterest = new Box(pos);
         return  world.getEntitiesByClass(Entity.class, areaOfInterest, entity -> true).stream().findFirst().orElse(null);
     }
@@ -141,79 +165,138 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
     }
 
     public void tick(World world, BlockPos blockPos, BlockState state) {
-        if(world.isClient()) return;
+        if (world.isClient()) return;
 
-        if(getStack(1).isOf(Items.LAPIS_LAZULI)){
-            if(power + 100 <= maxPower){
+        //handle lapis charging
+        if (getStack(1).isOf(Items.LAPIS_LAZULI)) {
+            if (power + 100 <= maxPower) {
                 getStack(1).decrement(1);
                 power += 100;
             }
+        } else if (getStack(1).isOf(Items.LAPIS_BLOCK)) {
+            if (power + 900 <= maxPower) {
+                getStack(1).decrement(1);
+                power += 900;
+            }
         }
 
-        if(getStack(0).isOf(ModItems.cartridge)) {
-            Entity collisionEntity = EntityOnBlock(blockPos, world);
+        //handle upgrades in slots
+        selectedUpgrades = CheckUpgrades(new int[]{2, 3, 4});
+        //SimpleTeleporters.LOGGER.info("upgrades on" + blockPos.toString() + " : " + selectedUpgrades.toString());
 
-            if(collisionEntity != null && canTeleport(collisionEntity).equals("yes")){
-                timeEntityOnBlock += 1;
-                if(collisionEntity instanceof PlayerEntity playerEntity){
-                    playerEntity.sendMessage(Text.literal("Teleporting in " + (((timeTilEntityOnBlockTeleports - timeEntityOnBlock) / 20 ) + 1)), true);
-                }
-            }
-            else if (timeEntityOnBlock != 0){
-                timeEntityOnBlock = 0;
-            }
 
-            if (timeEntityOnBlock >= timeTilEntityOnBlockTeleports && collisionEntity instanceof PlayerEntity player){
-
-                NbtCompound nbtData = getStack(0).getNbt();
-
-                if(nbtData != null && nbtData.getBoolean("Written")){
-
-                    long destX = nbtData.getLong("SavedX");
-                    long destY = nbtData.getLong("SavedY");
-                    long destZ = nbtData.getLong("SavedZ");
-
-                    if(world.getBlockState(new BlockPos((int)destX, (int)destY, (int)destZ)).getBlock() == Blocks.AIR) {
-                        //destination not occupied by blocks
-                        int price = (int) calculatePrice(player, destX, destY, destZ);
-                        if (power >= price) {
-                            player.teleport(destX, destY, destZ);
-                            power -= price;
-                            player.sendMessage(Text.literal("teleporting ..."), true);
-                        }
-                        else player.sendMessage(Text.literal("not enough power"), true);
+        //cartrige installed?
+        if (getStack(0).isOf(ModItems.cartridge)) {
+            //item mode?
+            if(selectedUpgrades.contains(Upgrades.items)){
+                if(getCanTransferItems() == 0) setCanTransferItems(100);
+                setStateOfAnimations(States.item, this.getPos());
+                ItemStack transferSlotContent = getStack(5);
+                if(!transferSlotContent.isEmpty()){
+                    BlockPos destinaton = canTeleportItems(transferSlotContent.getCount());
+                    if(destinaton != null){
+                        timeEntityOnBlock += 1;
+                        setCanTransferItems((timeEntityOnBlock - 1) * (99) / (timeTilEntityOnBlockTeleports - 1) + 1);
                     }
-                    else player.sendMessage(Text.literal("Destination occupied by blocks"),true);
-                }
-                else player.sendMessage(Text.literal("No destination set"), true);
 
-                timeEntityOnBlock = 0;
+                    if(timeEntityOnBlock >= timeTilEntityOnBlockTeleports && destinaton != null){
+                        world.spawnEntity(new ItemEntity(world, destinaton.getX(), destinaton.getY(), destinaton.getZ(), transferSlotContent));
+                        removeStack(5);
+                        timeEntityOnBlock = 0;
+                        setCanTransferItems(100);
+                    }
+                } else{
+                    setCanTransferItems(100);
+                    timeEntityOnBlock = 0;
+                }
+            }else{
+                if(getCanTransferItems() != 0) setCanTransferItems(0);
+                Entity collisionEntity = EntityOnBlock(blockPos, world);
+
+                if (collisionEntity != null && canTeleport(collisionEntity) != null) {
+                    setStateOfAnimations(States.active, this.getPos());
+                    timeEntityOnBlock += 1;
+                    if (collisionEntity instanceof PlayerEntity playerEntity) {
+                        playerEntity.sendMessage(Text.literal("Teleporting in " + (((timeTilEntityOnBlockTeleports - timeEntityOnBlock) / 20) + 1)), true);
+                    }
+                } else if (timeEntityOnBlock != 0) {
+                    setStateOfAnimations(States.idle, this.getPos());
+                    timeEntityOnBlock = 0;
+                } else setStateOfAnimations(States.idle, this.getPos());
+
+                if (timeEntityOnBlock >= timeTilEntityOnBlockTeleports) {
+                    BlockPos dest = canTeleport(collisionEntity);
+                    if (dest != null) {
+                        collisionEntity.teleport(dest.getX(), dest.getY(), dest.getZ());
+                        setStateOfAnimations(States.idle, this.getPos());
+                    }
+                }
             }
+        }
+        else {
+            setStateOfAnimations(States.off, this.getPos());
         }
     }
 
-    private long calculatePrice(PlayerEntity player, long x, long y, long z){
+    private BlockPos canTeleportItems(int count) {
+        NbtCompound nbtData = getStack(0).getNbt();
+        if(nbtData != null && nbtData.getBoolean("Written")){ //is the cartridge full?
+            long destX = nbtData.getLong("SavedX");
+            long destY = nbtData.getLong("SavedY");
+            long destZ = nbtData.getLong("SavedZ");
+            if(world.getBlockState(new BlockPos((int)destX, (int)destY, (int)destZ)).getBlock() == Blocks.AIR){
+                int price = (int) calculatePriceItems(this.getPos(),destX, destY, destZ, count);
+                if (power >= price) { //does the teleporter have enough lapis?
+                    return new BlockPos((int) destX, (int) destY, (int) destZ);
+                }else return null;
+            }else return null;
+        }else return null;
+    }
+
+    private int calculatePriceItems(BlockPos pos, long destX, long destY, long destZ, int count) {
+        int sum = (int)Math.round(((float)count/64.00) * ((float)Math.sqrt(pos.getSquaredDistance(destX, destY, destZ)) / 10.00));
+        if(sum == 0) return 1;
+        else return sum;
+    }
+
+    private long calculatePrice(Entity player, long x, long y, long z){
         return Math.round(Math.sqrt(player.squaredDistanceTo(x, y, z)));
     }
 
-    private String canTeleport(Entity collisionEntity){
-        if (collisionEntity instanceof PlayerEntity player){ //is this entity a player?
-            NbtCompound nbtData = getStack(0).getNbt();
-            if(nbtData != null && nbtData.getBoolean("Written")){ //is the cartridge full?
+    private BlockPos canTeleport(Entity collisionEntity){
+        NbtCompound nbtData = getStack(0).getNbt();
+        if(nbtData != null && nbtData.getBoolean("Written")){ //is the cartridge full?
 
-                long destX = nbtData.getLong("SavedX");
-                long destY = nbtData.getLong("SavedY");
-                long destZ = nbtData.getLong("SavedZ");
+            long destX = nbtData.getLong("SavedX");
+            long destY = nbtData.getLong("SavedY");
+            long destZ = nbtData.getLong("SavedZ");
 
-                if(world.getBlockState(new BlockPos((int)destX, (int)destY, (int)destZ)).getBlock() == Blocks.AIR) { //is the destination unoccupied?
-                    //destination not occupied by blocks
-                    int price = (int) calculatePrice(player, destX, destY, destZ);
-                    if (power >= price) { //does the teleporter have enough lapis?
-                        return "yes";
-                    }
-                    else return "not enough power";
-                }else return  "occupied destination";
-            }else return "no cartridge data";
-        }else return "not a player";
+            if(world.getBlockState(new BlockPos((int)destX, (int)destY, (int)destZ)).getBlock() == Blocks.AIR) { //is the destination unoccupied?
+                //destination not occupied by blocks
+                int price = (int) calculatePrice(collisionEntity, destX, destY, destZ);
+                if (power >= price) { //does the teleporter have enough lapis?
+                    return new BlockPos((int) destX, (int) destY, (int) destZ);
+                }
+                else return null;
+            }else return null;
+        }else return null;
+    }
+
+    private int getCanTransferItems(){
+        return canTransferItems;
+    }
+
+    private void setCanTransferItems(int value){
+        canTransferItems = value;
+    }
+
+    private EnumSet<Upgrades> CheckUpgrades(int[] slots){
+        EnumSet<Upgrades> localSet = EnumSet.noneOf(Upgrades.class);
+        for(int slot : slots){
+            if(getStack(slot).isOf(Items.FEATHER)) localSet.add(Upgrades.speed);
+            else if(getStack(slot).isOf(Items.GOLD_INGOT)) localSet.add(Upgrades.cost);
+            else if(getStack(slot).isOf(Items.CHEST)) localSet.add(Upgrades.items);
+        }
+        return localSet;
     }
 }

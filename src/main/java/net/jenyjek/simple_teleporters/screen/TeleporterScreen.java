@@ -31,10 +31,15 @@ public class TeleporterScreen extends HandledScreen<TeleporterScreenHandler> {
         int y = (height - backgroundHeight) / 2;
         context.drawTexture(TEXTURE, x, y, 0, 0, backgroundWidth, backgroundHeight);
         renderLapisBar(context, x, y);
+        renderLock(context, x, y);
     }
 
     private void renderLapisBar(DrawContext context, int x, int y){
         context.drawTexture(TEXTURE, x+156, y+7, 176, 0, 7, handler.powerLevel());
+    }
+
+    private void renderLock(DrawContext context, int x, int y){
+        context.drawTexture(TEXTURE, x+80, y+48, 183, 0, 16, handler.canTransferItems());
     }
 
     @Override

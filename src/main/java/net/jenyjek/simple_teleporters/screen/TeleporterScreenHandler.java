@@ -16,17 +16,22 @@ public class TeleporterScreenHandler extends ScreenHandler {
 
     public  TeleporterScreenHandler(int syncId, PlayerInventory inventory, PacketByteBuf buf) {
         this(syncId, inventory, (Inventory) inventory.player.getWorld().getBlockEntity(buf.readBlockPos()),
-                new ArrayPropertyDelegate(2));
+                new ArrayPropertyDelegate(6));
     }
     public TeleporterScreenHandler(int syncId, PlayerInventory playerInventory, Inventory inventory, PropertyDelegate delegate) {
         super(ModScreenHandlers.teleporterScreen, syncId);
-        checkSize(inventory, 2);
+        checkSize(inventory, 6);
         this.inventory = inventory;
         inventory.onOpen(playerInventory.player);
         this.propertyDelegate = delegate;
 
         this.addSlot(new Slot(inventory, 0, 26, 34));
         this.addSlot(new Slot(inventory, 1, 125, 63));
+        this.addSlot(new Slot(inventory, 2, 62, 21));
+        this.addSlot(new Slot(inventory, 3, 80, 21));
+        this.addSlot(new Slot(inventory, 4, 98, 21));
+        this.addSlot(new Slot(inventory, 5, 80, 48));
+
 
         addPlayerInventory(playerInventory);
         addPlayerHotbar(playerInventory);
@@ -81,5 +86,9 @@ public class TeleporterScreenHandler extends ScreenHandler {
         }
         //return propertyDelegate.get(0) * 72 / propertyDelegate.get(1);
         return propertyDelegate.get(0) * -72 / propertyDelegate.get(1) + 72;
+    }
+
+    public int canTransferItems(){
+        return propertyDelegate.get(2) * -16 / 100 + 16;
     }
 }

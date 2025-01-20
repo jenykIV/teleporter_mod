@@ -6,7 +6,9 @@ import net.minecraft.block.*;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityTicker;
 import net.minecraft.block.entity.BlockEntityType;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.screen.NamedScreenHandlerFactory;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
@@ -70,5 +72,18 @@ public class TeleporterBlock extends BlockWithEntity implements BlockEntityProvi
     public  <T extends BlockEntity> BlockEntityTicker<T> getTicker(World world, BlockState state, BlockEntityType<T> type) {
         return checkType(type, ModBlockEntities.teleporterBlockEntity,
                 (world1, pos, state1, blockEntity) -> blockEntity.tick(world1, pos, state1));
+    }
+
+    @Override
+    public void onPlaced(World world, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack itemStack) {
+
+
+        super.onPlaced(world, pos, state, placer, itemStack);
+
+        BlockPos apos = new BlockPos(pos.getX(), pos.getY()+1, pos.getZ());
+        Block above = world.getBlockState(apos).getBlock();
+        if(!above.equals(Blocks.AIR)&&above.getBlastResistance() < 120){
+            world.breakBlock(apos, true);
+        }
     }
 }
