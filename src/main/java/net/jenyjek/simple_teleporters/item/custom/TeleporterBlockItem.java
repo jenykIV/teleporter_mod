@@ -58,8 +58,4 @@ public class TeleporterBlockItem extends BlockItem implements GeoItem {
         return cache;
     }
 
-    @Override
-    public double getTick(Object itemStack) {
-        return RenderUtils.getCurrentTick();
-    }
 }

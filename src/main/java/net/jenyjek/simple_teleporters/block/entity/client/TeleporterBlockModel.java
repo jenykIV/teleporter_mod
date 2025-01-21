@@ -13,7 +13,7 @@ public class TeleporterBlockModel extends GeoModel<TeleporterBlockEntity> {
 
     @Override
     public Identifier getTextureResource(TeleporterBlockEntity teleporterBlockEntity) {
-        return new Identifier(SimpleTeleporters.MOD_ID, "textures/block/teleporteur.png");
+        return new Identifier(SimpleTeleporters.MOD_ID, "textures/block/teleporter.png");
     }
 
     @Override

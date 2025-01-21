@@ -45,13 +45,16 @@
 						"0.0": {
 							"vector": [0, 0, 0]
 						},
-						"2.5": {
-							"vector": [0, "360*7 ", 0],
-							"easing": "easeInQuad"
+						"1.0": {
+							"vector": [0, 75, 0],
+							"easing": "linear"
+						},
+						"4.5": {
+							"vector": [0, "-135+360*7", 0],
+							"easing": "easeInSine"
 						},
 						"5.0": {
-							"vector": [0, 0, 0],
-							"easing": "linear"
+							"vector": [0, 1080, 0]
 						}
 					},
 					"position": {
@@ -81,7 +84,7 @@
 		},
 		"3": {
 			"loop": true,
-			"animation_length": 25.0417,
+			"animation_length": 5,
 			"bones": {
 				"top": {
 					"position": {

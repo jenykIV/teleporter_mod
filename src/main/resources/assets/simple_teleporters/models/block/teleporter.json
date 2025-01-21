@@ -88,6 +88,6 @@
     }
   },
   "textures": {
-    "particle": "block/texture1"
+    "particle": "block/teleporter.png"
   }
 }

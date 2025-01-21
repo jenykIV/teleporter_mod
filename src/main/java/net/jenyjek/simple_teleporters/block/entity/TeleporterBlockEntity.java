@@ -47,7 +47,8 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
     private int canTransferItems = 0;
     
     private int timeEntityOnBlock;
-    private int timeTilEntityOnBlockTeleports = 100;
+    private final int nominalTimeTilEntityTeleports = 120;
+    private int timeTilEntityOnBlockTeleports ;
 
     private enum States {idle, active, off, item}
     private enum Upgrades{speed, cost, items}
@@ -187,6 +188,8 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
 
         //cartrige installed?
         if (getStack(0).isOf(ModItems.cartridge)) {
+            //handle time calc
+            timeTilEntityOnBlockTeleports = calculateTpTime(selectedUpgrades);
             //item mode?
             if(selectedUpgrades.contains(Upgrades.items)){
                 if(getCanTransferItems() == 0) setCanTransferItems(100);
@@ -202,6 +205,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
                     if(timeEntityOnBlock >= timeTilEntityOnBlockTeleports && destinaton != null){
                         world.spawnEntity(new ItemEntity(world, destinaton.getX(), destinaton.getY(), destinaton.getZ(), transferSlotContent));
                         removeStack(5);
+                        power -= calculatePriceItems(this.getPos(), destinaton.getX(), destinaton.getY(), destinaton.getZ(), transferSlotContent.getCount(), selectedUpgrades);
                         timeEntityOnBlock = 0;
                         setCanTransferItems(100);
                     }
@@ -238,6 +242,11 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
         }
     }
 
+    private int calculateTpTime(EnumSet<Upgrades> upgrades) {
+        if (upgrades.contains(Upgrades.speed)) return nominalTimeTilEntityTeleports/2;
+        else return nominalTimeTilEntityTeleports;
+    }
+
     private BlockPos canTeleportItems(int count) {
         NbtCompound nbtData = getStack(0).getNbt();
         if(nbtData != null && nbtData.getBoolean("Written")){ //is the cartridge full?
@@ -245,7 +254,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
             long destY = nbtData.getLong("SavedY");
             long destZ = nbtData.getLong("SavedZ");
             if(world.getBlockState(new BlockPos((int)destX, (int)destY, (int)destZ)).getBlock() == Blocks.AIR){
-                int price = (int) calculatePriceItems(this.getPos(),destX, destY, destZ, count);
+                int price = (int) calculatePriceItems(this.getPos(),destX, destY, destZ, count, selectedUpgrades);
                 if (power >= price) { //does the teleporter have enough lapis?
                     return new BlockPos((int) destX, (int) destY, (int) destZ);
                 }else return null;
@@ -253,14 +262,16 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
         }else return null;
     }
 
-    private int calculatePriceItems(BlockPos pos, long destX, long destY, long destZ, int count) {
+    private int calculatePriceItems(BlockPos pos, long destX, long destY, long destZ, int count, EnumSet<Upgrades> upgrades) {
         int sum = (int)Math.round(((float)count/64.00) * ((float)Math.sqrt(pos.getSquaredDistance(destX, destY, destZ)) / 10.00));
+        if (upgrades.contains(Upgrades.cost)) sum /= 2;
         if(sum == 0) return 1;
         else return sum;
     }
 
-    private long calculatePrice(Entity player, long x, long y, long z){
-        return Math.round(Math.sqrt(player.squaredDistanceTo(x, y, z)));
+    private long calculatePrice(Entity player, long x, long y, long z, EnumSet<Upgrades> upgrades){
+       if (upgrades.contains(Upgrades.cost)) return Math.round(Math.sqrt(player.squaredDistanceTo(x, y, z)))/2;
+       else return Math.round(Math.sqrt(player.squaredDistanceTo(x, y, z)));
     }
 
     private BlockPos canTeleport(Entity collisionEntity){
@@ -273,7 +284,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
 
             if(world.getBlockState(new BlockPos((int)destX, (int)destY, (int)destZ)).getBlock() == Blocks.AIR) { //is the destination unoccupied?
                 //destination not occupied by blocks
-                int price = (int) calculatePrice(collisionEntity, destX, destY, destZ);
+                int price = (int) calculatePrice(collisionEntity, destX, destY, destZ, selectedUpgrades);
                 if (power >= price) { //does the teleporter have enough lapis?
                     return new BlockPos((int) destX, (int) destY, (int) destZ);
                 }
