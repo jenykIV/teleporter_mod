@@ -1,6 +1,7 @@
 package net.jenyjek.simple_teleporters.block.entity;
 
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
+import net.jenyjek.simple_teleporters.SimpleTeleporters;
 import net.jenyjek.simple_teleporters.item.ModItems;
 import net.jenyjek.simple_teleporters.screen.TeleporterScreenHandler;
 import net.minecraft.block.BlockState;
@@ -22,6 +23,7 @@ import net.minecraft.screen.ScreenHandler;
 import net.minecraft.text.Text;
 import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoBlockEntity;
@@ -48,7 +50,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
     
     private int timeEntityOnBlock;
     private final int nominalTimeTilEntityTeleports = 120;
-    private int timeTilEntityOnBlockTeleports ;
+    private int timeTilEntityOnBlockTeleports;
 
     private enum States {idle, active, off, item}
     private enum Upgrades{speed, cost, items}
@@ -203,7 +205,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
                     }
 
                     if(timeEntityOnBlock >= timeTilEntityOnBlockTeleports && destinaton != null){
-                        world.spawnEntity(new ItemEntity(world, destinaton.getX(), destinaton.getY(), destinaton.getZ(), transferSlotContent));
+                        world.spawnEntity(new ItemEntity(world, destinaton.getX()+0.5f, destinaton.getY(), destinaton.getZ()+0.5f, transferSlotContent));
                         removeStack(5);
                         power -= calculatePriceItems(this.getPos(), destinaton.getX(), destinaton.getY(), destinaton.getZ(), transferSlotContent.getCount(), selectedUpgrades);
                         timeEntityOnBlock = 0;
@@ -231,7 +233,8 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
                 if (timeEntityOnBlock >= timeTilEntityOnBlockTeleports) {
                     BlockPos dest = canTeleport(collisionEntity);
                     if (dest != null) {
-                        collisionEntity.teleport(dest.getX(), dest.getY(), dest.getZ());
+                        power -= calculatePrice(collisionEntity, dest.getX(), dest.getY(), dest.getZ(), selectedUpgrades);
+                        collisionEntity.teleport(dest.getX() + 0.5f, dest.getY(), dest.getZ() + 0.5f);
                         setStateOfAnimations(States.idle, this.getPos());
                     }
                 }
@@ -254,7 +257,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
             long destY = nbtData.getLong("SavedY");
             long destZ = nbtData.getLong("SavedZ");
             if(world.getBlockState(new BlockPos((int)destX, (int)destY, (int)destZ)).getBlock() == Blocks.AIR){
-                int price = (int) calculatePriceItems(this.getPos(),destX, destY, destZ, count, selectedUpgrades);
+                int price = calculatePriceItems(this.getPos(),destX, destY, destZ, count, selectedUpgrades);
                 if (power >= price) { //does the teleporter have enough lapis?
                     return new BlockPos((int) destX, (int) destY, (int) destZ);
                 }else return null;
@@ -269,22 +272,21 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
         else return sum;
     }
 
-    private long calculatePrice(Entity player, long x, long y, long z, EnumSet<Upgrades> upgrades){
-       if (upgrades.contains(Upgrades.cost)) return Math.round(Math.sqrt(player.squaredDistanceTo(x, y, z)))/2;
-       else return Math.round(Math.sqrt(player.squaredDistanceTo(x, y, z)));
+    private int calculatePrice(Entity player, long destX, long destY, long destZ, EnumSet<Upgrades> upgrades){
+        int sum = Math.round(((float)Math.sqrt(player.squaredDistanceTo(destX, destY, destZ))));
+        if (upgrades.contains(Upgrades.cost)) sum /= 2;
+        if(sum == 0) return 1;
+        else return sum;
     }
 
     private BlockPos canTeleport(Entity collisionEntity){
         NbtCompound nbtData = getStack(0).getNbt();
         if(nbtData != null && nbtData.getBoolean("Written")){ //is the cartridge full?
-
             long destX = nbtData.getLong("SavedX");
             long destY = nbtData.getLong("SavedY");
             long destZ = nbtData.getLong("SavedZ");
-
-            if(world.getBlockState(new BlockPos((int)destX, (int)destY, (int)destZ)).getBlock() == Blocks.AIR) { //is the destination unoccupied?
-                //destination not occupied by blocks
-                int price = (int) calculatePrice(collisionEntity, destX, destY, destZ, selectedUpgrades);
+            if(world.getBlockState(new BlockPos((int)destX, (int)destY, (int)destZ)).getBlock() == Blocks.AIR) { //is the destination unoccupied?s
+                int price = calculatePrice(collisionEntity, destX, destY, destZ, selectedUpgrades);
                 if (power >= price) { //does the teleporter have enough lapis?
                     return new BlockPos((int) destX, (int) destY, (int) destZ);
                 }

@@ -16,7 +16,7 @@ import net.minecraft.util.Identifier;
 public class ModBlocks {
 
     public static final Block arcstoneBlock = registerBlock("arcstone_block", new Block(FabricBlockSettings.copyOf(Blocks.IRON_BLOCK).sounds(BlockSoundGroup.GLASS)));
-    public static final Block teleporterBlock = Registry.register(Registries.BLOCK, new Identifier(SimpleTeleporters.MOD_ID, "teleporter"), new TeleporterBlock(FabricBlockSettings.copyOf(Blocks.IRON_BLOCK).nonOpaque()));
+    public static final Block teleporterBlock = Registry.register(Registries.BLOCK, new Identifier(SimpleTeleporters.MOD_ID, "teleporter"), new TeleporterBlock(FabricBlockSettings.copyOf(Blocks.IRON_BLOCK).nonOpaque().lightLevel(5)));
 
     private  static  Block registerBlock(String name, Block block){
         registerBlockItem(name, block);

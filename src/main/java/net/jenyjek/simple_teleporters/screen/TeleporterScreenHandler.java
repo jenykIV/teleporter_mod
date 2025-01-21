@@ -80,6 +80,10 @@ public class TeleporterScreenHandler extends ScreenHandler {
         }
     }
 
+    public float getLapisLeft(){
+        return propertyDelegate.get(0)/100f;
+    }
+
     public int powerLevel() {
         if (propertyDelegate.get(1) <= 1){
             propertyDelegate.set(1, 1);

@@ -3,6 +3,7 @@ package net.jenyjek.simple_teleporters.screen;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.jenyjek.simple_teleporters.SimpleTeleporters;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.util.math.MatrixStack;
@@ -32,6 +33,19 @@ public class TeleporterScreen extends HandledScreen<TeleporterScreenHandler> {
         context.drawTexture(TEXTURE, x, y, 0, 0, backgroundWidth, backgroundHeight);
         renderLapisBar(context, x, y);
         renderLock(context, x, y);
+        tooltips(context,mouseX,mouseY,x,y);
+
+    }
+
+    private void tooltips(DrawContext context, int mouseX, int mouseY, int x, int y){
+        if(isMouseOverRect(mouseX, mouseY, x, y, 156, 7, 7, 72)) setTooltip(Text.literal("lapis: " + handler.getLapisLeft()));
+        if(!handler.getSlot(0).hasStack() && isMouseOverRect(mouseX, mouseY, x, y, 24, 32, 20, 20)) setTooltip(Text.literal("Insert cartridge to activate teleporter!"));
+        if(handler.canTransferItems() == 16  && isMouseOverRect(mouseX, mouseY, x, y, 80, 48, 16, 16)) setTooltip(Text.literal("Requires upgrade!"));
+        drawMouseoverTooltip(context, mouseX, mouseY);
+    }
+
+    private boolean isMouseOverRect(int mouseX, int mouseY, int x, int y, int xpos, int ypos, int width, int height){
+        return mouseX >= x+xpos && mouseX <= x+xpos + width && mouseY >= y+ypos && mouseY <= y+ypos + height;
     }
 
     private void renderLapisBar(DrawContext context, int x, int y){
