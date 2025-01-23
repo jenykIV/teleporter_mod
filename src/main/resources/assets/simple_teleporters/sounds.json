@@ -1,0 +1,29 @@
+{
+  "sound_teleporter_1_teleporting" : {
+    "subtitle" : "teleporter charging",
+    "sounds" : [
+      "simple_teleporters:teleporter_charge1"
+    ]
+  },
+  "sound_teleporter_2_teleporting" : {
+    "subtitle" : "teleporter still charging",
+    "sounds" : [
+      "simple_teleporters:teleporter_charge2"
+    ]
+  },
+  "sound_teleporter_end_teleporting" : {
+    "subtitle" : "teleporter spinning down",
+    "sounds" : [
+      "simple_teleporters:teleporter_charge3"
+    ]
+  },
+  "sound_teleporter_idle" : {
+    "subtitle" : "mystical moan",
+    "sounds" : [
+        "simple_teleporters:teleporter_idle1",
+      "simple_teleporters:teleporter_idle2",
+      "simple_teleporters:teleporter_idle3",
+      "simple_teleporters:teleporter_idle4"
+    ]
+  }
+}

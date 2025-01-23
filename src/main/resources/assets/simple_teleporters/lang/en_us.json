@@ -7,5 +7,7 @@
 
   "item.simple_teleporters.cartridge" : "Cartridge",
 
-  "block.simple_teleporters.teleporter" : "Teleporter"
+  "block.simple_teleporters.teleporter" : "Teleporter",
+
+  "item.simple_teleporters.oxidised_copper_ingot" : "Oxidized copper ingot"
 }

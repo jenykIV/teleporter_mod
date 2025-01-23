@@ -12,8 +12,8 @@ discrete_mouse_scroll:false
 invertYMouse:false
 realmsNotifications:true
 reducedDebugInfo:false
-showSubtitles:false
-directionalAudio:false
+showSubtitles:true
+directionalAudio:true
 touchscreen:false
 fullscreen:false
 bobView:true

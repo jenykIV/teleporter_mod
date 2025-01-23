@@ -1,9 +1,9 @@
 package net.jenyjek.simple_teleporters.block.entity;
 
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
-import net.jenyjek.simple_teleporters.SimpleTeleporters;
 import net.jenyjek.simple_teleporters.item.ModItems;
 import net.jenyjek.simple_teleporters.screen.TeleporterScreenHandler;
+import net.jenyjek.simple_teleporters.sound.ModSounds;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
@@ -11,6 +11,9 @@ import net.minecraft.entity.ItemEntity;
 import net.minecraft.item.Items;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvent;
+import net.minecraft.stat.Stat;
 import net.minecraft.util.math.Box;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -23,7 +26,6 @@ import net.minecraft.screen.ScreenHandler;
 import net.minecraft.text.Text;
 import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoBlockEntity;
@@ -50,7 +52,10 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
     
     private int timeEntityOnBlock;
     private final int nominalTimeTilEntityTeleports = 120;
-    private int timeTilEntityOnBlockTeleports;
+    private int soundDuration = 200, currentSoundTime = soundDuration;
+
+    private enum SoundProgress {none, first, second}
+    private SoundProgress isPlaying = SoundProgress.none;
 
     private enum States {idle, active, off, item}
     private enum Upgrades{speed, cost, items}
@@ -182,6 +187,15 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
                 power += 900;
             }
         }
+        //sound iambient
+        if (getStateOfAnimations(this.getPos()) == States.idle || getStateOfAnimations(this.getPos()) == States.item){
+            currentSoundTime += 1;
+            if(currentSoundTime >= soundDuration){
+                world.playSound(null, this.getPos(), ModSounds.TELEPORTER_IDLE, SoundCategory.BLOCKS, 1f, 1f);
+                soundDuration = (int) ((Math.random() * 3600.00) + 2400);
+                currentSoundTime = 0;
+            }
+        }
 
         //handle upgrades in slots
         selectedUpgrades = CheckUpgrades(new int[]{2, 3, 4});
@@ -191,7 +205,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
         //cartrige installed?
         if (getStack(0).isOf(ModItems.cartridge)) {
             //handle time calc
-            timeTilEntityOnBlockTeleports = calculateTpTime(selectedUpgrades);
+            int timeTilEntityOnBlockTeleports = calculateTpTime(selectedUpgrades);
             //item mode?
             if(selectedUpgrades.contains(Upgrades.items)){
                 if(getCanTransferItems() == 0) setCanTransferItems(100);
@@ -215,7 +229,8 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
                     setCanTransferItems(100);
                     timeEntityOnBlock = 0;
                 }
-            }else{
+            } else
+            {
                 if(getCanTransferItems() != 0) setCanTransferItems(0);
                 Entity collisionEntity = EntityOnBlock(blockPos, world);
 
@@ -224,9 +239,22 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
                     timeEntityOnBlock += 1;
                     if (collisionEntity instanceof PlayerEntity playerEntity) {
                         playerEntity.sendMessage(Text.literal("Teleporting in " + (((timeTilEntityOnBlockTeleports - timeEntityOnBlock) / 20) + 1)), true);
+                        if(timeEntityOnBlock < 60 && isPlaying == SoundProgress.none){
+                            world.playSound(null, this.getPos(), ModSounds.TELEPORTER_1_TELEPORTING, SoundCategory.BLOCKS, 1f, 1f);
+                            isPlaying = SoundProgress.first;
+                            //sounds play only 1 and end
+
+                        }else if(timeEntityOnBlock > 60 && isPlaying == SoundProgress.first){
+                            //sounds play 1, 2, and end
+                            world.playSound(null, this.getPos(), ModSounds.TELEPORTER_2_TELEPORTING, SoundCategory.BLOCKS, 1f, 1f);
+                            isPlaying = SoundProgress.second;
+                        }
+
                     }
                 } else if (timeEntityOnBlock != 0) {
                     setStateOfAnimations(States.idle, this.getPos());
+                    isPlaying = SoundProgress.none;
+
                     timeEntityOnBlock = 0;
                 } else setStateOfAnimations(States.idle, this.getPos());
 
@@ -235,6 +263,10 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
                     if (dest != null) {
                         power -= calculatePrice(collisionEntity, dest.getX(), dest.getY(), dest.getZ(), selectedUpgrades);
                         collisionEntity.teleport(dest.getX() + 0.5f, dest.getY(), dest.getZ() + 0.5f);
+                        isPlaying = SoundProgress.none;
+                        world.playSound(null, this.getPos(), ModSounds.TELEPORTER_END_TELEPORTING, SoundCategory.BLOCKS, 1f, 1f);
+                        world.playSound(null, collisionEntity.getBlockPos(), ModSounds.TELEPORTER_END_TELEPORTING, SoundCategory.BLOCKS, 1f, 1f);
+
                         setStateOfAnimations(States.idle, this.getPos());
                     }
                 }

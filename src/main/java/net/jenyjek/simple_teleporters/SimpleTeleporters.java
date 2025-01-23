@@ -7,6 +7,7 @@ import net.jenyjek.simple_teleporters.block.entity.ModBlockEntities;
 import net.jenyjek.simple_teleporters.item.ModItemGroups;
 import net.jenyjek.simple_teleporters.item.ModItems;
 import net.jenyjek.simple_teleporters.screen.ModScreenHandlers;
+import net.jenyjek.simple_teleporters.sound.ModSounds;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.bernie.geckolib.GeckoLib;
@@ -24,6 +25,7 @@ public class SimpleTeleporters implements ModInitializer {
 		ModBlocks.registerModBlocks();
 		ModBlockEntities.registerAllBlockEntities();
 		ModScreenHandlers.registerAllScreenHandlers();
+		ModSounds.registerSounds();
 		LOGGER.info("successfully loaded mod: " + MOD_ID);
 		LOGGER.info("Loading Gecko...");
 		GeckoLib.initialize();

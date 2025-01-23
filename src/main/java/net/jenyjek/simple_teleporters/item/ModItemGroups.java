@@ -15,6 +15,7 @@ public class ModItemGroups {
             new Identifier(SimpleTeleporters.MOD_ID, "simple_teleporters_group"),
             FabricItemGroup.builder().displayName(Text.translatable("itemgroup.simple_teleporters_group"))
                     .icon(() -> new ItemStack(ModItems.arcStone)).entries((displayContext, entries) -> {
+                        entries.add(ModItems.oxidisedCoppperIngot);
                         entries.add(ModItems.arcStone);
                         entries.add(ModBlocks.arcstoneBlock);
                         entries.add(ModItems.cartridge);

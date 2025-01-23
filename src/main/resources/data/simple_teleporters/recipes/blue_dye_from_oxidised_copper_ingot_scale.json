@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "group": "blue_dye",
+  "pattern": [
+    "iii",
+    "iwi",
+    "iii"
+  ],
+  "key": {
+    "i": {
+      "item": "simple_teleporters:oxidised_copper_ingot"
+    },
+    "w": {
+      "item": "minecraft:water_bucket"
+    }
+  },
+  "result": {
+    "item": "minecraft:blue_dye",
+    "count": 8
+  }
+}
