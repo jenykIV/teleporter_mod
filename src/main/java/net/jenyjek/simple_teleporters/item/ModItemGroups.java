@@ -20,6 +20,7 @@ public class ModItemGroups {
                         entries.add(ModBlocks.arcstoneBlock);
                         entries.add(ModItems.cartridge);
                         entries.add(ModItems.teleporter);
+                        entries.add(ModBlocks.chargedArcstoneBlock);
                     }).build());
 
     public static void registerItemGroups(){

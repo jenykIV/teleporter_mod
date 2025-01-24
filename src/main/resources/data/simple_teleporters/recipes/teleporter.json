@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " c ",
+    "iei",
+    "bbb"
+  ],
+  "key": {
+    "c": {
+      "item": "simple_teleporters:charged_arcstone_block"
+    },
+    "i": {
+      "item": "minecraft:iron_ingot"
+    },
+    "e": {
+      "item": "minecraft:ender_eye"
+    },
+    "b": {
+      "item": "minecraft:polished_blackstone"
+    }
+  },
+  "result": {
+    "item": "simple_teleporters:teleporter",
+    "count": 1
+  }
+}

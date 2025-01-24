@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " e ",
+    "ebe",
+    " e "
+  ],
+  "key": {
+    "e": {
+      "item": "minecraft:blaze_powder"
+    },
+    "b": {
+      "item": "simple_teleporters:arcstone_block"
+    }
+  },
+  "result": {
+    "item": "simple_teleporters:charged_arcstone_block",
+    "count": 1
+  }
+}

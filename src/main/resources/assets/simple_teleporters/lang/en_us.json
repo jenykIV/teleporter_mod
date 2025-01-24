@@ -4,6 +4,7 @@
   "itemgroup.simple_teleporters_group": "Simple Teleporters",
 
   "block.simple_teleporters.arcstone_block" : "Arcstone block",
+  "block.simple_teleporters.charged_arcstone_block" : "Charged arcstone block",
 
   "item.simple_teleporters.cartridge" : "Cartridge",
 
