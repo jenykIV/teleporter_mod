@@ -18,9 +18,13 @@ public class ModItemGroups {
                         entries.add(ModItems.oxidisedCoppperIngot);
                         entries.add(ModItems.arcStone);
                         entries.add(ModBlocks.arcstoneBlock);
+                        entries.add(ModBlocks.chargedArcstoneBlock);
                         entries.add(ModItems.cartridge);
                         entries.add(ModItems.teleporter);
-                        entries.add(ModBlocks.chargedArcstoneBlock);
+                        entries.add(ModItems.teleporterItemUpgrade);
+                        entries.add(ModItems.teleporterCostUpgrade);
+                        entries.add(ModItems.teleporterCapacityUpgrade);
+                        entries.add(ModItems.teleporterSpeedUpgrade);
                     }).build());
 
     public static void registerItemGroups(){

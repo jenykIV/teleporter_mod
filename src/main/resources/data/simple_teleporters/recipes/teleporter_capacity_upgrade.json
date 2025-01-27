@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " l ",
+    "dcd",
+    " u "
+  ],
+  "key": {
+    "c": {
+      "item": "simple_teleporters:cartridge"
+    },
+    "d": {
+      "item": "minecraft:diamond"
+    },
+    "l": {
+      "item": "minecraft:lapis_block"
+    },
+    "u": {
+      "item": "minecraft:cauldron"
+    }
+  },
+  "result": {
+    "item": "simple_teleporters:teleporter_upgrade_capacity",
+    "count": 1
+  }
+}

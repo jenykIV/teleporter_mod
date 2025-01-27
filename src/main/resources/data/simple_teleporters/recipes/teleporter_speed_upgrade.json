@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " e ",
+    "dcd",
+    " f "
+  ],
+  "key": {
+    "c": {
+      "item": "simple_teleporters:cartridge"
+    },
+    "d": {
+      "item": "minecraft:diamond"
+    },
+    "e": {
+      "item": "minecraft:ender_eye"
+    },
+    "f": {
+      "item": "minecraft:feather"
+    }
+  },
+  "result": {
+    "item": "simple_teleporters:teleporter_upgrade_speed",
+    "count": 1
+  }
+}

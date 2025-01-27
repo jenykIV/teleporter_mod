@@ -7,6 +7,7 @@ import net.jenyjek.simple_teleporters.SimpleTeleporters;
 import net.jenyjek.simple_teleporters.block.ModBlocks;
 import net.jenyjek.simple_teleporters.item.custom.CartrigeItem;
 import net.jenyjek.simple_teleporters.item.custom.TeleporterBlockItem;
+import net.jenyjek.simple_teleporters.item.custom.TeleporterUpgrade;
 import net.minecraft.item.Item;
 
 import net.minecraft.item.ItemGroups;
@@ -20,6 +21,10 @@ public class ModItems {
     public static final Item cartridge = registerItem("cartridge", new CartrigeItem(new FabricItemSettings().maxCount(1)));
     public static final Item teleporter = registerItem("teleporter", new TeleporterBlockItem(ModBlocks.teleporterBlock, new FabricItemSettings().maxCount(16)));
     public static final Item oxidisedCoppperIngot = registerItem("oxidised_copper_ingot", new Item(new FabricItemSettings()));
+    public static final Item teleporterSpeedUpgrade = registerItem("teleporter_upgrade_speed", new TeleporterUpgrade(new FabricItemSettings(), "Reduces teleporting time by half."));
+    public static final Item teleporterCostUpgrade = registerItem("teleporter_upgrade_cost", new TeleporterUpgrade(new FabricItemSettings(), "Reduces teleporting cost by half."));
+    public static final Item teleporterCapacityUpgrade = registerItem("teleporter_upgrade_capacity", new TeleporterUpgrade(new FabricItemSettings(), "Increases Lapis capacity by double."));
+    public static final Item teleporterItemUpgrade = registerItem("teleporter_upgrade_item", new TeleporterUpgrade(new FabricItemSettings(), "Turns teleporter into a glorified hopper."));
 
     private static void addItemsToIngredientItemGroup(FabricItemGroupEntries entries){
         //entries.add(arcStone);

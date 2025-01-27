@@ -10,5 +10,10 @@
 
   "block.simple_teleporters.teleporter" : "Teleporter",
 
-  "item.simple_teleporters.oxidised_copper_ingot" : "Oxidized copper ingot"
+  "item.simple_teleporters.oxidised_copper_ingot" : "Oxidized copper ingot",
+
+  "item.simple_teleporters.teleporter_upgrade_cost" : "Teleporter efficiency upgrade",
+  "item.simple_teleporters.teleporter_upgrade_capacity" : "Teleporter capacity upgrade",
+  "item.simple_teleporters.teleporter_upgrade_speed" : "Teleporter speed upgrade",
+  "item.simple_teleporters.teleporter_upgrade_item" : "Teleporter mail upgrade"
 }

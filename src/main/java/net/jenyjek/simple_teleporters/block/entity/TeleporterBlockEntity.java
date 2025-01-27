@@ -48,6 +48,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
     protected final PropertyDelegate propertyDelegate;
     private int power;
     private int maxPower = 1000;
+    private int nominalMaxPower = 1000;
     private int canTransferItems = 0;
     
     private int timeEntityOnBlock;
@@ -58,7 +59,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
     private SoundProgress isPlaying = SoundProgress.none;
 
     private enum States {idle, active, off, item}
-    private enum Upgrades{speed, cost, items}
+    private enum Upgrades{speed, cost, storage, items}
     private EnumSet<Upgrades> selectedUpgrades = EnumSet.noneOf(Upgrades.class);
 
     private static final Map<BlockPos, States> animationStateForBlocks = new HashMap<>();
@@ -174,6 +175,13 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
 
     public void tick(World world, BlockPos blockPos, BlockState state) {
         if (world.isClient()) return;
+        if(selectedUpgrades.contains(Upgrades.storage) && maxPower != nominalMaxPower * 2){
+            maxPower = nominalMaxPower * 2;
+        }
+        else if (!selectedUpgrades.contains(Upgrades.storage) && maxPower != nominalMaxPower){
+            maxPower = nominalMaxPower;
+            if(power > maxPower) power = maxPower;
+        }
 
         //handle lapis charging
         if (getStack(1).isOf(Items.LAPIS_LAZULI)) {
@@ -187,6 +195,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
                 power += 900;
             }
         }
+
         //sound iambient
         if (getStateOfAnimations(this.getPos()) == States.idle || getStateOfAnimations(this.getPos()) == States.item){
             currentSoundTime += 1;
@@ -264,7 +273,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
                         power -= calculatePrice(collisionEntity, dest.getX(), dest.getY(), dest.getZ(), selectedUpgrades);
                         collisionEntity.teleport(dest.getX() + 0.5f, dest.getY(), dest.getZ() + 0.5f);
                         isPlaying = SoundProgress.none;
-                        world.playSound(null, this.getPos(), ModSounds.TELEPORTER_END_TELEPORTING, SoundCategory.BLOCKS, 1f, 1f);
+                        world.playSound(collisionEntity, this.getPos(), ModSounds.TELEPORTER_END_TELEPORTING, SoundCategory.BLOCKS, 1f, 1f);
                         world.playSound(null, collisionEntity.getBlockPos(), ModSounds.TELEPORTER_END_TELEPORTING, SoundCategory.BLOCKS, 1f, 1f);
 
                         setStateOfAnimations(States.idle, this.getPos());
@@ -338,9 +347,10 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
     private EnumSet<Upgrades> CheckUpgrades(int[] slots){
         EnumSet<Upgrades> localSet = EnumSet.noneOf(Upgrades.class);
         for(int slot : slots){
-            if(getStack(slot).isOf(Items.FEATHER)) localSet.add(Upgrades.speed);
-            else if(getStack(slot).isOf(Items.GOLD_INGOT)) localSet.add(Upgrades.cost);
-            else if(getStack(slot).isOf(Items.CHEST)) localSet.add(Upgrades.items);
+            if(getStack(slot).isOf(ModItems.teleporterSpeedUpgrade)) localSet.add(Upgrades.speed);
+            else if(getStack(slot).isOf(ModItems.teleporterCostUpgrade)) localSet.add(Upgrades.cost);
+            else if(getStack(slot).isOf(ModItems.teleporterItemUpgrade)) localSet.add(Upgrades.items);
+            else if(getStack(slot).isOf(ModItems.teleporterCapacityUpgrade)) localSet.add(Upgrades.storage);
         }
         return localSet;
     }

@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " g ",
+    "dcd",
+    " g "
+  ],
+  "key": {
+    "g": {
+      "item": "minecraft:gold_ingot"
+    },
+    "d": {
+      "item": "minecraft:diamond"
+    },
+    "c": {
+      "item": "simple_teleporters:cartridge"
+    }
+  },
+  "result": {
+    "item": "simple_teleporters:teleporter_upgrade_cost",
+    "count": 1
+  }
+}
