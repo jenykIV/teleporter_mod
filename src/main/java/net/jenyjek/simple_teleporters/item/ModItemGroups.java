@@ -14,7 +14,7 @@ public class ModItemGroups {
     public static final ItemGroup SimpleTeleportersGroup = Registry.register(Registries.ITEM_GROUP,
             new Identifier(SimpleTeleporters.MOD_ID, "simple_teleporters_group"),
             FabricItemGroup.builder().displayName(Text.translatable("itemgroup.simple_teleporters_group"))
-                    .icon(() -> new ItemStack(ModItems.arcStone)).entries((displayContext, entries) -> {
+                    .icon(() -> new ItemStack(ModItems.teleporter)).entries((displayContext, entries) -> {
                         entries.add(ModItems.oxidisedCoppperIngot);
                         entries.add(ModItems.arcStone);
                         entries.add(ModBlocks.arcstoneBlock);
@@ -25,6 +25,7 @@ public class ModItemGroups {
                         entries.add(ModItems.teleporterCostUpgrade);
                         entries.add(ModItems.teleporterCapacityUpgrade);
                         entries.add(ModItems.teleporterSpeedUpgrade);
+                        entries.add(ModItems.teleporterCooldownUpgrade);
                     }).build());
 
     public static void registerItemGroups(){

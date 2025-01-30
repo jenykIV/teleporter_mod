@@ -23,8 +23,9 @@ public class ModItems {
     public static final Item oxidisedCoppperIngot = registerItem("oxidised_copper_ingot", new Item(new FabricItemSettings()));
     public static final Item teleporterSpeedUpgrade = registerItem("teleporter_upgrade_speed", new TeleporterUpgrade(new FabricItemSettings(), "Reduces teleporting time by half."));
     public static final Item teleporterCostUpgrade = registerItem("teleporter_upgrade_cost", new TeleporterUpgrade(new FabricItemSettings(), "Reduces teleporting cost by half."));
-    public static final Item teleporterCapacityUpgrade = registerItem("teleporter_upgrade_capacity", new TeleporterUpgrade(new FabricItemSettings(), "Increases Lapis capacity by double."));
+    public static final Item teleporterCapacityUpgrade = registerItem("teleporter_upgrade_capacity", new TeleporterUpgrade(new FabricItemSettings(), "Doubles the Lapis capacity."));
     public static final Item teleporterItemUpgrade = registerItem("teleporter_upgrade_item", new TeleporterUpgrade(new FabricItemSettings(), "Turns teleporter into a glorified hopper."));
+    public static final Item teleporterCooldownUpgrade = registerItem("teleporter_upgrade_cooldown", new TeleporterUpgrade(new FabricItemSettings(), "Reduces the time it takes to cool down the teleporter by half"));
 
     private static void addItemsToIngredientItemGroup(FabricItemGroupEntries entries){
         //entries.add(arcStone);

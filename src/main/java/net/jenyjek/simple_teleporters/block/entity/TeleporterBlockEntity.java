@@ -1,19 +1,23 @@
 package net.jenyjek.simple_teleporters.block.entity;
 
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
+import net.jenyjek.simple_teleporters.SimpleTeleporters;
 import net.jenyjek.simple_teleporters.item.ModItems;
 import net.jenyjek.simple_teleporters.screen.TeleporterScreenHandler;
 import net.jenyjek.simple_teleporters.sound.ModSounds;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.ItemEntity;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.item.Items;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.particle.ParticleEffect;
+import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.stat.Stat;
 import net.minecraft.util.math.Box;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -26,6 +30,9 @@ import net.minecraft.screen.ScreenHandler;
 import net.minecraft.text.Text;
 import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.shape.SimpleVoxelShape;
+import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoBlockEntity;
@@ -43,13 +50,18 @@ import java.util.Map;
 public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity, ExtendedScreenHandlerFactory, ImplementedInventory {
 
     private final DefaultedList<ItemStack> inventory = DefaultedList.ofSize(6, ItemStack.EMPTY);
-    private AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
+    private final AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
 
     protected final PropertyDelegate propertyDelegate;
     private int power;
+    private int teleportCooldown = 0;
+    private final int nominalTeleporterCooldown = 300;
+
     private int maxPower = 1000;
-    private int nominalMaxPower = 1000;
+    private final int nominalMaxPower = 1000;
     private int canTransferItems = 0;
+    private PlayerEntity lastKnownPlayer;
+    private StatusEffectInstance nauseaGot;
     
     private int timeEntityOnBlock;
     private final int nominalTimeTilEntityTeleports = 120;
@@ -59,7 +71,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
     private SoundProgress isPlaying = SoundProgress.none;
 
     private enum States {idle, active, off, item}
-    private enum Upgrades{speed, cost, storage, items}
+    private enum Upgrades{speed, cost, storage, items, cooldown}
     private EnumSet<Upgrades> selectedUpgrades = EnumSet.noneOf(Upgrades.class);
 
     private static final Map<BlockPos, States> animationStateForBlocks = new HashMap<>();
@@ -71,12 +83,12 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
         this.propertyDelegate = new PropertyDelegate() {
             @Override
             public int get(int index) {
-                switch (index){
-                    case 0: return TeleporterBlockEntity.this.power;
-                    case 1: return TeleporterBlockEntity.this.maxPower;
-                    case 2: return TeleporterBlockEntity.this.canTransferItems;
-                    default: return 0;
-                }
+                return switch (index) {
+                    case 0 -> TeleporterBlockEntity.this.power;
+                    case 1 -> TeleporterBlockEntity.this.maxPower;
+                    case 2 -> TeleporterBlockEntity.this.canTransferItems;
+                    default -> 0;
+                };
             }
 
             @Override
@@ -173,7 +185,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
         packetByteBuf.writeBlockPos(this.pos);
     }
 
-    public void tick(World world, BlockPos blockPos, BlockState state) {
+    public void tick(World world, BlockPos blockPos) {
         if (world.isClient()) return;
         if(selectedUpgrades.contains(Upgrades.storage) && maxPower != nominalMaxPower * 2){
             maxPower = nominalMaxPower * 2;
@@ -240,14 +252,24 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
                 }
             } else
             {
+                //entity mode
                 if(getCanTransferItems() != 0) setCanTransferItems(0);
                 Entity collisionEntity = EntityOnBlock(blockPos, world);
-
-                if (collisionEntity != null && canTeleport(collisionEntity) != null) {
+                if(teleportCooldown > 0){
+                    teleportCooldown -= 1;
+                    spawnParticles(ParticleTypes.SMOKE, this.getPos(), 5);
+                }
+                else if (collisionEntity != null && canTeleport(collisionEntity) != null) {
                     setStateOfAnimations(States.active, this.getPos());
                     timeEntityOnBlock += 1;
                     if (collisionEntity instanceof PlayerEntity playerEntity) {
                         playerEntity.sendMessage(Text.literal("Teleporting in " + (((timeTilEntityOnBlockTeleports - timeEntityOnBlock) / 20) + 1)), true);
+                        if(!playerEntity.hasStatusEffect(StatusEffects.NAUSEA)){
+                            nauseaGot = new StatusEffectInstance(StatusEffects.NAUSEA, 120, 10, false, false, false);
+                            playerEntity.addStatusEffect(nauseaGot, null);
+                        }
+                        if(lastKnownPlayer != playerEntity) lastKnownPlayer = playerEntity;
+                        spawnParticles(ParticleTypes.ENCHANT, this.getPos(), 4);
                         if(timeEntityOnBlock < 60 && isPlaying == SoundProgress.none){
                             world.playSound(null, this.getPos(), ModSounds.TELEPORTER_1_TELEPORTING, SoundCategory.BLOCKS, 1f, 1f);
                             isPlaying = SoundProgress.first;
@@ -261,6 +283,11 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
 
                     }
                 } else if (timeEntityOnBlock != 0) {
+                    if(lastKnownPlayer != null) lastKnownPlayer.sendMessage(Text.literal("Teleporting cancelled..."), true);
+                    if(nauseaGot != null && lastKnownPlayer != null){
+                        lastKnownPlayer.removeStatusEffect(StatusEffects.NAUSEA);
+                        nauseaGot = null;
+                    }
                     setStateOfAnimations(States.idle, this.getPos());
                     isPlaying = SoundProgress.none;
 
@@ -272,10 +299,20 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
                     if (dest != null) {
                         power -= calculatePrice(collisionEntity, dest.getX(), dest.getY(), dest.getZ(), selectedUpgrades);
                         collisionEntity.teleport(dest.getX() + 0.5f, dest.getY(), dest.getZ() + 0.5f);
+                        if(nauseaGot != null && collisionEntity instanceof PlayerEntity player){
+                            player.removeStatusEffect(StatusEffects.NAUSEA);
+                            nauseaGot = null;
+                            player.addStatusEffect(new StatusEffectInstance(StatusEffects.DARKNESS, 60, 10, false, false, false));
+                            spawnParticles(ParticleTypes.GLOW_SQUID_INK, this.getPos(), 20);
+                            spawnParticles(ParticleTypes.ENCHANTED_HIT, collisionEntity.getBlockPos(), 20);
+                        }
+                        if(collisionEntity instanceof ServerPlayerEntity player && player.currentScreenHandler != null) player.closeHandledScreen();
                         isPlaying = SoundProgress.none;
+                        timeEntityOnBlock = 0;
                         world.playSound(collisionEntity, this.getPos(), ModSounds.TELEPORTER_END_TELEPORTING, SoundCategory.BLOCKS, 1f, 1f);
                         world.playSound(null, collisionEntity.getBlockPos(), ModSounds.TELEPORTER_END_TELEPORTING, SoundCategory.BLOCKS, 1f, 1f);
-
+                        if(selectedUpgrades.contains(Upgrades.cooldown)) teleportCooldown = nominalTeleporterCooldown / 2;
+                        else teleportCooldown = nominalTeleporterCooldown;
                         setStateOfAnimations(States.idle, this.getPos());
                     }
                 }
@@ -283,6 +320,8 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
         }
         else {
             setStateOfAnimations(States.off, this.getPos());
+            timeEntityOnBlock = 0;
+            isPlaying = SoundProgress.none;
         }
     }
 
@@ -351,7 +390,20 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
             else if(getStack(slot).isOf(ModItems.teleporterCostUpgrade)) localSet.add(Upgrades.cost);
             else if(getStack(slot).isOf(ModItems.teleporterItemUpgrade)) localSet.add(Upgrades.items);
             else if(getStack(slot).isOf(ModItems.teleporterCapacityUpgrade)) localSet.add(Upgrades.storage);
+            else if(getStack(slot).isOf(ModItems.teleporterCooldownUpgrade)) localSet.add(Upgrades.cooldown);
         }
         return localSet;
+    }
+
+    int i = 0;
+    private void spawnParticles(ParticleEffect particleTypes, BlockPos positionClicked,int amount) {
+
+        for(; i < 360; i++) {
+            if(i % (360/(amount+1)) == 0){
+                MinecraftClient.getInstance().execute(() -> {
+                    MinecraftClient.getInstance().world.addParticle(particleTypes,positionClicked.getX() + 0.5d, positionClicked.getY(), positionClicked.getZ() + 0.5d,Math.cos(i) * 0.1d, 0.15d, Math.sin(i) * 0.1d);
+                });
+            }
+        }
     }
 }

@@ -71,7 +71,7 @@ public class TeleporterBlock extends BlockWithEntity implements BlockEntityProvi
     @Nullable
     public  <T extends BlockEntity> BlockEntityTicker<T> getTicker(World world, BlockState state, BlockEntityType<T> type) {
         return checkType(type, ModBlockEntities.teleporterBlockEntity,
-                (world1, pos, state1, blockEntity) -> blockEntity.tick(world1, pos, state1));
+                (world1, pos, state1, blockEntity) -> blockEntity.tick(world1, pos));
     }
 
     @Override

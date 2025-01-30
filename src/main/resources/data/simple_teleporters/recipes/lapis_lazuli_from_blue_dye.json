@@ -1,6 +1,7 @@
 {
   "type": "minecraft:blasting",
   "category": "misc",
+  "group": "lapis_lazuli",
   "ingredient": {
     "item": "minecraft:blue_dye"
   },
