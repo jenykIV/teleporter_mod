@@ -143,12 +143,6 @@
     },
     "done": true
   },
-  "minecraft:adventure/adventuring_time": {
-    "criteria": {
-      "minecraft:meadow": "2025-01-20 15:38:44 +0100"
-    },
-    "done": false
-  },
   "minecraft:recipes/decorations/candle": {
     "criteria": {
       "has_string": "2025-01-20 15:38:43 +0100"
@@ -202,6 +196,12 @@
       "has_log": "2025-01-20 15:38:43 +0100"
     },
     "done": true
+  },
+  "minecraft:adventure/adventuring_time": {
+    "criteria": {
+      "minecraft:meadow": "2025-01-20 15:38:44 +0100"
+    },
+    "done": false
   },
   "DataVersion": 3465
 }

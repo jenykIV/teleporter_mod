@@ -257,7 +257,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
                 Entity collisionEntity = EntityOnBlock(blockPos, world);
                 if(teleportCooldown > 0){
                     teleportCooldown -= 1;
-                    spawnParticles(ParticleTypes.SMOKE, this.getPos(), 5);
+                    cooldownParticles(this.getPos());
                 }
                 else if (collisionEntity != null && canTeleport(collisionEntity) != null) {
                     setStateOfAnimations(States.active, this.getPos());
@@ -269,7 +269,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
                             playerEntity.addStatusEffect(nauseaGot, null);
                         }
                         if(lastKnownPlayer != playerEntity) lastKnownPlayer = playerEntity;
-                        spawnParticles(ParticleTypes.ENCHANT, this.getPos(), 4);
+                        spawnParticles(ParticleTypes.GLOW, this.getPos(), 4, 0, 0.25d, 1);
                         if(timeEntityOnBlock < 60 && isPlaying == SoundProgress.none){
                             world.playSound(null, this.getPos(), ModSounds.TELEPORTER_1_TELEPORTING, SoundCategory.BLOCKS, 1f, 1f);
                             isPlaying = SoundProgress.first;
@@ -303,8 +303,8 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
                             player.removeStatusEffect(StatusEffects.NAUSEA);
                             nauseaGot = null;
                             player.addStatusEffect(new StatusEffectInstance(StatusEffects.DARKNESS, 60, 10, false, false, false));
-                            spawnParticles(ParticleTypes.GLOW_SQUID_INK, this.getPos(), 20);
-                            spawnParticles(ParticleTypes.ENCHANTED_HIT, collisionEntity.getBlockPos(), 20);
+                            spawnParticles(ParticleTypes.GLOW_SQUID_INK, this.getPos(), 20, 0.1d, 0.1d, 0);
+                            spawnParticles(ParticleTypes.GLOW_SQUID_INK, collisionEntity.getBlockPos(), 20, 0.1d, 0.1d, 0);
                         }
                         if(collisionEntity instanceof ServerPlayerEntity player && player.currentScreenHandler != null) player.closeHandledScreen();
                         isPlaying = SoundProgress.none;
@@ -395,15 +395,27 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
         return localSet;
     }
 
-    int i = 0;
-    private void spawnParticles(ParticleEffect particleTypes, BlockPos positionClicked,int amount) {
-
-        for(; i < 360; i++) {
-            if(i % (360/(amount+1)) == 0){
-                MinecraftClient.getInstance().execute(() -> {
-                    MinecraftClient.getInstance().world.addParticle(particleTypes,positionClicked.getX() + 0.5d, positionClicked.getY(), positionClicked.getZ() + 0.5d,Math.cos(i) * 0.1d, 0.15d, Math.sin(i) * 0.1d);
-                });
+    private void spawnParticles(ParticleEffect particleTypes, BlockPos positionClicked,int amount, double spread, double ring, double YRoffset) {
+        MinecraftClient instance = MinecraftClient.getInstance();
+        instance.execute(() -> {
+            for(int i=0; i < 360; i++) {
+                if(i % (360/amount) == 0){
+                    double rads = i*(Math.PI/180.0);
+                    instance.world.addParticle(particleTypes,
+                            positionClicked.getX() + 0.5d + (Math.cos(rads) * ring), positionClicked.getY() + (instance.world.random.nextDouble() * YRoffset), positionClicked.getZ() + 0.5d + (Math.sin(rads) * ring),
+                            (Math.cos(rads) * 0.1d) * spread, 0.15d, (Math.sin(rads) * 0.1d) * spread);
+                }
             }
-        }
+        });
+
+    }
+
+    private void cooldownParticles(BlockPos ppos){
+        MinecraftClient client = MinecraftClient.getInstance();
+        client.execute(() -> {
+            World world = client.world;
+            world.addParticle(ParticleTypes.REVERSE_PORTAL, ppos.getX() + 0.5d + (world.random.nextDouble() * 0.25d), ppos.getY() + (world.random.nextDouble() * 2.00d), ppos.getZ() + 0.5d +(world.random.nextDouble() * 0.25d),
+                    world.random.nextDouble() * 1d, world.random.nextDouble() * 1d, world.random.nextDouble() * 1d);
+        });
     }
 }
