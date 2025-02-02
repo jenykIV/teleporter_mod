@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " t ",
+    "dcd",
+    " r "
+  ],
+  "key": {
+    "t": {
+      "item": "clock"
+    },
+    "d": {
+      "item": "minecraft:stick"
+    },
+    "c": {
+      "item": "simple_teleporters:cartrige"
+    },
+    "r": {
+      "item": "minecraft:redstone"
+    }
+  },
+  "result": {
+    "item": "simple_teleporters:teleporter_upgrade_cooldown",
+    "count": 1
+  }
+}
