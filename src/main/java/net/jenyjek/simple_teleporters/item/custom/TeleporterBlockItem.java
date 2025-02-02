@@ -57,5 +57,4 @@ public class TeleporterBlockItem extends BlockItem implements GeoItem {
     public AnimatableInstanceCache getAnimatableInstanceCache() {
         return cache;
     }
-
 }

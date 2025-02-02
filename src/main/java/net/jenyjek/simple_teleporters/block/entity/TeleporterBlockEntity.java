@@ -9,6 +9,7 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.datafixer.fix.BlockEntityCustomNameToTextFix;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
@@ -45,6 +46,7 @@ import software.bernie.geckolib.core.object.PlayState;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 
 public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity, ExtendedScreenHandlerFactory, ImplementedInventory {
@@ -62,7 +64,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
     private int canTransferItems = 0;
     private PlayerEntity lastKnownPlayer;
     private StatusEffectInstance nauseaGot;
-    
+    public String customName = "Teleporter";
     private int timeEntityOnBlock;
     private final int nominalTimeTilEntityTeleports = 120;
     private int soundDuration = 200, currentSoundTime = soundDuration;
@@ -167,7 +169,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
 
     @Override
     public Text getDisplayName() {
-        return Text.literal("Teleporter");
+        return Text.literal(customName);
     }
 
     @Override
@@ -265,19 +267,21 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
                     if (collisionEntity instanceof PlayerEntity playerEntity) {
                         playerEntity.sendMessage(Text.literal("Teleporting in " + (((timeTilEntityOnBlockTeleports - timeEntityOnBlock) / 20) + 1)), true);
                         if(!playerEntity.hasStatusEffect(StatusEffects.NAUSEA)){
-                            nauseaGot = new StatusEffectInstance(StatusEffects.NAUSEA, 120, 10, false, false, false);
+                            nauseaGot = new StatusEffectInstance(StatusEffects.NAUSEA, 240, 10, false, false, false);
                             playerEntity.addStatusEffect(nauseaGot, null);
                         }
                         if(lastKnownPlayer != playerEntity) lastKnownPlayer = playerEntity;
                         spawnParticles(ParticleTypes.GLOW, this.getPos(), 4, 0, 0.25d, 1);
                         if(timeEntityOnBlock < 60 && isPlaying == SoundProgress.none){
-                            world.playSound(null, this.getPos(), ModSounds.TELEPORTER_1_TELEPORTING, SoundCategory.BLOCKS, 1f, 1f);
+                            if(Objects.equals(this.getDisplayName().getString(), "mhd")) world.playSound(null, this.getPos(), ModSounds.TELEPORTER_EASTER, SoundCategory.BLOCKS, 1f, 1f);
+                            else world.playSound(null, this.getPos(), ModSounds.TELEPORTER_1_TELEPORTING, SoundCategory.BLOCKS, 1f, 1f);
+                            SimpleTeleporters.LOGGER.info("Teleprter ame: " + this.getDisplayName().getString());
                             isPlaying = SoundProgress.first;
                             //sounds play only 1 and end
 
                         }else if(timeEntityOnBlock > 60 && isPlaying == SoundProgress.first){
                             //sounds play 1, 2, and end
-                            world.playSound(null, this.getPos(), ModSounds.TELEPORTER_2_TELEPORTING, SoundCategory.BLOCKS, 1f, 1f);
+                            if(!(Objects.equals(this.getDisplayName().getString(), "mhd")))world.playSound(null, this.getPos(), ModSounds.TELEPORTER_2_TELEPORTING, SoundCategory.BLOCKS, 1f, 1f);
                             isPlaying = SoundProgress.second;
                         }
 
@@ -288,6 +292,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
                         lastKnownPlayer.removeStatusEffect(StatusEffects.NAUSEA);
                         nauseaGot = null;
                     }
+                    teleportCooldown = 90;
                     setStateOfAnimations(States.idle, this.getPos());
                     isPlaying = SoundProgress.none;
 
@@ -303,6 +308,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
                             player.removeStatusEffect(StatusEffects.NAUSEA);
                             nauseaGot = null;
                             player.addStatusEffect(new StatusEffectInstance(StatusEffects.DARKNESS, 60, 10, false, false, false));
+                            player.addStatusEffect(new StatusEffectInstance(StatusEffects.NAUSEA, 60, 10, false, false, false));
                             spawnParticles(ParticleTypes.GLOW_SQUID_INK, this.getPos(), 20, 0.1d, 0.1d, 0);
                             spawnParticles(ParticleTypes.GLOW_SQUID_INK, collisionEntity.getBlockPos(), 20, 0.1d, 0.1d, 0);
                         }
@@ -322,6 +328,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
             setStateOfAnimations(States.off, this.getPos());
             timeEntityOnBlock = 0;
             isPlaying = SoundProgress.none;
+            canTransferItems = 0;
         }
     }
 
@@ -385,13 +392,19 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
 
     private EnumSet<Upgrades> CheckUpgrades(int[] slots){
         EnumSet<Upgrades> localSet = EnumSet.noneOf(Upgrades.class);
+        Text changingName = null;
         for(int slot : slots){
+            if(getStack(slot).hasCustomName()) changingName = getStack(slot).getName();
+
             if(getStack(slot).isOf(ModItems.teleporterSpeedUpgrade)) localSet.add(Upgrades.speed);
             else if(getStack(slot).isOf(ModItems.teleporterCostUpgrade)) localSet.add(Upgrades.cost);
             else if(getStack(slot).isOf(ModItems.teleporterItemUpgrade)) localSet.add(Upgrades.items);
             else if(getStack(slot).isOf(ModItems.teleporterCapacityUpgrade)) localSet.add(Upgrades.storage);
             else if(getStack(slot).isOf(ModItems.teleporterCooldownUpgrade)) localSet.add(Upgrades.cooldown);
         }
+        if(changingName != null) this.customName = changingName.getString();
+        else this.customName = "Teleporter";
+
         return localSet;
     }
 
@@ -414,8 +427,10 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
         MinecraftClient client = MinecraftClient.getInstance();
         client.execute(() -> {
             World world = client.world;
-            world.addParticle(ParticleTypes.REVERSE_PORTAL, ppos.getX() + 0.5d + (world.random.nextDouble() * 0.25d), ppos.getY() + (world.random.nextDouble() * 2.00d), ppos.getZ() + 0.5d +(world.random.nextDouble() * 0.25d),
-                    world.random.nextDouble() * 1d, world.random.nextDouble() * 1d, world.random.nextDouble() * 1d);
+            for (int i = 0; i < 5; i++) {
+                world.addParticle(ParticleTypes.REVERSE_PORTAL, ppos.getX() + 0.40d + (world.random.nextDouble() * 0.25d), ppos.getY() + (world.random.nextDouble() * 2.00d), ppos.getZ() + 0.40d +(world.random.nextDouble() * 0.25d),
+                        ((world.random.nextDouble() * 2d) - 1)*0.05d, ((world.random.nextDouble() * 2d) - 1)*0.02d, ((world.random.nextDouble() * 2d) - 1)*0.05d);
+            }
         });
     }
 }

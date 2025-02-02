@@ -9,7 +9,11 @@ import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.screen.NamedScreenHandlerFactory;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
+import net.minecraft.text.MutableText;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.ItemScatterer;
@@ -80,9 +84,9 @@ public class TeleporterBlock extends BlockWithEntity implements BlockEntityProvi
 
         super.onPlaced(world, pos, state, placer, itemStack);
 
-        BlockPos apos = new BlockPos(pos.getX(), pos.getY()+1, pos.getZ());
+        BlockPos apos = new BlockPos(pos.getX(), pos.getY() + 1, pos.getZ());
         Block above = world.getBlockState(apos).getBlock();
-        if(!above.equals(Blocks.AIR)&&above.getBlastResistance() < 120){
+        if (!above.equals(Blocks.AIR) && above.getBlastResistance() < 120) {
             world.breakBlock(apos, true);
         }
     }

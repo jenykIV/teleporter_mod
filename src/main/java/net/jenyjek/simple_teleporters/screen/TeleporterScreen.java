@@ -62,10 +62,4 @@ public class TeleporterScreen extends HandledScreen<TeleporterScreenHandler> {
         super.render(context, mouseX, mouseY, delta);
         drawMouseoverTooltip(context, mouseX, mouseY);
     }
-
-    @Override
-    public void close() {
-        super.close();
-        SimpleTeleporters.LOGGER.info("Nigga");
-    }
 }

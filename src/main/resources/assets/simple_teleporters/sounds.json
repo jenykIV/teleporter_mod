@@ -25,5 +25,11 @@
       "simple_teleporters:teleporter_idle3",
       "simple_teleporters:teleporter_idle4"
     ]
+  },
+  "sound_teleporter_kripl" : {
+    "subtitle": "Kripl nastupuje",
+    "sounds" : [
+      "simple_teleporters:nastup_postizeneho"
+    ]
   }
 }
