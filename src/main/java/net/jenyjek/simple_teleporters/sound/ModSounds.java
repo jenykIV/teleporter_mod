@@ -13,6 +13,7 @@ public class ModSounds {
     public static final SoundEvent TELEPORTER_END_TELEPORTING = registerSoundEvent("sound_teleporter_end_teleporting");
     public static final SoundEvent TELEPORTER_IDLE = registerSoundEvent("sound_teleporter_idle");
     public static final SoundEvent TELEPORTER_EASTER = registerSoundEvent("sound_teleporter_kripl");
+    public static final SoundEvent TELEPORTER_EASTER3 = registerSoundEvent("sound_teleporter_kripl3");
 
     private static SoundEvent registerSoundEvent(String name){
         Identifier id = new Identifier(SimpleTeleporters.MOD_ID, name);

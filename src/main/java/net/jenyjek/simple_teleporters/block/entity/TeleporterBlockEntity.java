@@ -275,13 +275,12 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
                         if(timeEntityOnBlock < 60 && isPlaying == SoundProgress.none){
                             if(Objects.equals(this.getDisplayName().getString(), "mhd")) world.playSound(null, this.getPos(), ModSounds.TELEPORTER_EASTER, SoundCategory.BLOCKS, 1f, 1f);
                             else world.playSound(null, this.getPos(), ModSounds.TELEPORTER_1_TELEPORTING, SoundCategory.BLOCKS, 1f, 1f);
-                            SimpleTeleporters.LOGGER.info("Teleprter ame: " + this.getDisplayName().getString());
                             isPlaying = SoundProgress.first;
                             //sounds play only 1 and end
 
                         }else if(timeEntityOnBlock > 60 && isPlaying == SoundProgress.first){
                             //sounds play 1, 2, and end
-                            if(!(Objects.equals(this.getDisplayName().getString(), "mhd")))world.playSound(null, this.getPos(), ModSounds.TELEPORTER_2_TELEPORTING, SoundCategory.BLOCKS, 1f, 1f);
+                            if(!(Objects.equals(this.getDisplayName().getString(), "mhd"))) world.playSound(null, this.getPos(), ModSounds.TELEPORTER_2_TELEPORTING, SoundCategory.BLOCKS, 1f, 1f);
                             isPlaying = SoundProgress.second;
                         }
 
@@ -315,8 +314,14 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
                         if(collisionEntity instanceof ServerPlayerEntity player && player.currentScreenHandler != null) player.closeHandledScreen();
                         isPlaying = SoundProgress.none;
                         timeEntityOnBlock = 0;
-                        world.playSound(collisionEntity, this.getPos(), ModSounds.TELEPORTER_END_TELEPORTING, SoundCategory.BLOCKS, 1f, 1f);
-                        world.playSound(null, collisionEntity.getBlockPos(), ModSounds.TELEPORTER_END_TELEPORTING, SoundCategory.BLOCKS, 1f, 1f);
+                        if(Objects.equals(this.getDisplayName().getString(), "mhd")){
+                            world.playSound(collisionEntity, this.getPos(), ModSounds.TELEPORTER_EASTER3, SoundCategory.BLOCKS, 1f, 1f);
+                            world.playSound(null, collisionEntity.getBlockPos(), ModSounds.TELEPORTER_EASTER3, SoundCategory.BLOCKS, 1f, 1f);
+                        }
+                        else{
+                            world.playSound(collisionEntity, this.getPos(), ModSounds.TELEPORTER_END_TELEPORTING, SoundCategory.BLOCKS, 1f, 1f);
+                            world.playSound(null, collisionEntity.getBlockPos(), ModSounds.TELEPORTER_END_TELEPORTING, SoundCategory.BLOCKS, 1f, 1f);
+                        }
                         if(selectedUpgrades.contains(Upgrades.cooldown)) teleportCooldown = nominalTeleporterCooldown / 2;
                         else teleportCooldown = nominalTeleporterCooldown;
                         setStateOfAnimations(States.idle, this.getPos());

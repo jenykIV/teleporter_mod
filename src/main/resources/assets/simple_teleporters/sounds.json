@@ -31,5 +31,11 @@
     "sounds" : [
       "simple_teleporters:nastup_postizeneho"
     ]
+  },
+  "sound_teleporter_kripl3" : {
+    "subtitle": "Kripl se posral",
+    "sounds" : [
+      "simple_teleporters:fart_reverb"
+    ]
   }
 }
