@@ -1,6 +1,9 @@
 {
   "credit": "Made with Blockbench",
   "parent": "builtin/entity",
+  "textures": {
+    "particle": "minecraft:block/blackstone"
+  },
   "display": {
     "thirdperson_righthand": {
       "translation": [
@@ -86,8 +89,5 @@
         0.6
       ]
     }
-  },
-  "textures": {
-    "particle": "block/teleporter.png"
   }
 }

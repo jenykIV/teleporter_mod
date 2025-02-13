@@ -1,6 +1,5 @@
 {
   "variants": {
-    "": { "model": "simple_teleporters:block/teleporter"
-    }
+    "": { "model": "simple_teleporters:block/teleporter" }
   }
 }

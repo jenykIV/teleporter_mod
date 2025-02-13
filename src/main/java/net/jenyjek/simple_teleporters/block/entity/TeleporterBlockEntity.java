@@ -8,17 +8,22 @@ import net.jenyjek.simple_teleporters.sound.ModSounds;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.datafixer.fix.BlockEntityCustomNameToTextFix;
+//import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.item.Items;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.network.packet.s2c.play.ParticleS2CPacket;
 import net.minecraft.particle.ParticleEffect;
 import net.minecraft.particle.ParticleTypes;
+import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
+import net.minecraft.stat.Stat;
+import net.minecraft.state.property.EnumProperty;
+import net.minecraft.util.StringIdentifiable;
 import net.minecraft.util.math.Box;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -31,9 +36,7 @@ import net.minecraft.screen.ScreenHandler;
 import net.minecraft.text.Text;
 import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.shape.SimpleVoxelShape;
-import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.util.shape.VoxelShapes;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoBlockEntity;
@@ -42,6 +45,7 @@ import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache
 import software.bernie.geckolib.core.animatable.instance.SingletonAnimatableInstanceCache;
 import software.bernie.geckolib.core.animation.*;
 import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.util.GeckoLibUtil;
 
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -52,7 +56,7 @@ import java.util.Objects;
 public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity, ExtendedScreenHandlerFactory, ImplementedInventory {
 
     private final DefaultedList<ItemStack> inventory = DefaultedList.ofSize(6, ItemStack.EMPTY);
-    private final AnimatableInstanceCache cache = new SingletonAnimatableInstanceCache(this);
+    private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
     protected final PropertyDelegate propertyDelegate;
     private int power;
@@ -72,9 +76,11 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
     private enum SoundProgress {none, first, second}
     private SoundProgress isPlaying = SoundProgress.none;
 
-    private enum States {idle, active, off, item}
+    public enum States {idle, active, off, item}
     private enum Upgrades{speed, cost, storage, items, cooldown}
     private EnumSet<Upgrades> selectedUpgrades = EnumSet.noneOf(Upgrades.class);
+
+    private States currentAnimation = States.off;
 
     private static final Map<BlockPos, States> animationStateForBlocks = new HashMap<>();
 
@@ -110,19 +116,28 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
     }
 
     private States getStateOfAnimations(BlockPos pos){
-        return animationStateForBlocks.get(pos);
+        return currentAnimation;
     }
 
     private void setStateOfAnimations(States to, BlockPos pos){
-        animationStateForBlocks.put(pos, to);
+        if(!currentAnimation.equals(to)){
+            triggerAnim("controller", to.toString());
+            currentAnimation = to;
+        }
     }
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllerRegistrar) {
-        controllerRegistrar.add(new AnimationController<>(this, "controller", 20, this::predicate));
+        controllerRegistrar.add(new AnimationController<>(this, "controller", 20, state -> state.setAndContinue(RawAnimation.begin().then("2", Animation.LoopType.LOOP)))
+                .triggerableAnim("off",RawAnimation.begin().then("2", Animation.LoopType.LOOP))
+                .triggerableAnim("idle",RawAnimation.begin().then("0", Animation.LoopType.LOOP))
+                .triggerableAnim("active",RawAnimation.begin().then("1", Animation.LoopType.HOLD_ON_LAST_FRAME))
+                .triggerableAnim("item",RawAnimation.begin().then("3", Animation.LoopType.LOOP))
+                /*this::predicate*/
+        );
     }
 
-    private <T extends GeoAnimatable> PlayState predicate(AnimationState<T> tAnimationState) {
+    /*private <T extends GeoAnimatable> PlayState predicate(AnimationState<T> tAnimationState) {
         if(getStateOfAnimations(this.getPos()) == States.off){
             tAnimationState.getController().setAnimation(RawAnimation.begin().then("2", Animation.LoopType.LOOP));
             return PlayState.CONTINUE;
@@ -137,7 +152,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
             return PlayState.CONTINUE;
         }
         return PlayState.STOP;
-    }
+    }*/
 
     @Override
     public AnimatableInstanceCache getAnimatableInstanceCache() {
@@ -189,6 +204,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
 
     public void tick(World world, BlockPos blockPos) {
         if (world.isClient()) return;
+
         if(selectedUpgrades.contains(Upgrades.storage) && maxPower != nominalMaxPower * 2){
             maxPower = nominalMaxPower * 2;
         }
@@ -271,7 +287,7 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
                             playerEntity.addStatusEffect(nauseaGot, null);
                         }
                         if(lastKnownPlayer != playerEntity) lastKnownPlayer = playerEntity;
-                        spawnParticles(ParticleTypes.GLOW, this.getPos(), 4, 0, 0.25d, 1);
+                        spawnParticles(ParticleTypes.GLOW, this.getPos(), 15,  0);
                         if(timeEntityOnBlock < 60 && isPlaying == SoundProgress.none){
                             if(Objects.equals(this.getDisplayName().getString(), "mhd")) world.playSound(null, this.getPos(), ModSounds.TELEPORTER_EASTER, SoundCategory.BLOCKS, 1f, 1f);
                             else world.playSound(null, this.getPos(), ModSounds.TELEPORTER_1_TELEPORTING, SoundCategory.BLOCKS, 1f, 1f);
@@ -308,8 +324,8 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
                             nauseaGot = null;
                             player.addStatusEffect(new StatusEffectInstance(StatusEffects.DARKNESS, 60, 10, false, false, false));
                             player.addStatusEffect(new StatusEffectInstance(StatusEffects.NAUSEA, 60, 10, false, false, false));
-                            spawnParticles(ParticleTypes.GLOW_SQUID_INK, this.getPos(), 20, 0.1d, 0.1d, 0);
-                            spawnParticles(ParticleTypes.GLOW_SQUID_INK, collisionEntity.getBlockPos(), 20, 0.1d, 0.1d, 0);
+                            spawnParticles(ParticleTypes.GLOW_SQUID_INK, this.getPos(), 20, 0.05f);
+                            spawnParticles(ParticleTypes.GLOW_SQUID_INK, collisionEntity.getBlockPos(), 20,  0.05f);
                         }
                         if(collisionEntity instanceof ServerPlayerEntity player && player.currentScreenHandler != null) player.closeHandledScreen();
                         isPlaying = SoundProgress.none;
@@ -413,29 +429,51 @@ public class TeleporterBlockEntity extends BlockEntity implements GeoBlockEntity
         return localSet;
     }
 
-    private void spawnParticles(ParticleEffect particleTypes, BlockPos positionClicked,int amount, double spread, double ring, double YRoffset) {
-        MinecraftClient instance = MinecraftClient.getInstance();
-        instance.execute(() -> {
-            for(int i=0; i < 360; i++) {
-                if(i % (360/amount) == 0){
-                    double rads = i*(Math.PI/180.0);
-                    instance.world.addParticle(particleTypes,
-                            positionClicked.getX() + 0.5d + (Math.cos(rads) * ring), positionClicked.getY() + (instance.world.random.nextDouble() * YRoffset), positionClicked.getZ() + 0.5d + (Math.sin(rads) * ring),
-                            (Math.cos(rads) * 0.1d) * spread, 0.15d, (Math.sin(rads) * 0.1d) * spread);
-                }
-            }
-        });
-
+    private void spawnParticles(ParticleEffect particleTypes, BlockPos positionClicked,int amount, float speed) {
+        if(this.world instanceof ServerWorld serverWorld){
+            /*sendPacticlePacket(serverWorld,
+                    new Vec3d(positionClicked.getX() + 0.5d, positionClicked.getY() + YRoffset, positionClicked.getZ() + 0.5d),
+                    particleTypes,
+                    new Vec3d(spread, yspread, spread),
+                    speed, amount);*/
+            sendPacticlePacket(serverWorld,
+                    new Vec3d(positionClicked.getX() + 0.5d, positionClicked.getY() + 0.55d, positionClicked.getZ() + 0.5d),
+                    particleTypes,
+                    new Vec3d(0.2, 0.1, 0.2),
+                    speed, amount);
+        }
+        else{
+            SimpleTeleporters.LOGGER.info("No server nigger");
+        }
     }
 
     private void cooldownParticles(BlockPos ppos){
-        MinecraftClient client = MinecraftClient.getInstance();
-        client.execute(() -> {
-            World world = client.world;
-            for (int i = 0; i < 5; i++) {
-                world.addParticle(ParticleTypes.REVERSE_PORTAL, ppos.getX() + 0.40d + (world.random.nextDouble() * 0.25d), ppos.getY() + (world.random.nextDouble() * 2.00d), ppos.getZ() + 0.40d +(world.random.nextDouble() * 0.25d),
-                        ((world.random.nextDouble() * 2d) - 1)*0.05d, ((world.random.nextDouble() * 2d) - 1)*0.02d, ((world.random.nextDouble() * 2d) - 1)*0.05d);
+        if(this.world instanceof ServerWorld serverWorld){
+            /*sendPacticlePacket(serverWorld,
+                    new Vec3d(ppos.getX() + 0.40d + (world.random.nextDouble() * 0.25d), ppos.getY() + (world.random.nextDouble() * 2.00d), ppos.getZ() + 0.40d +(world.random.nextDouble() * 0.25d)),
+                    ParticleTypes.REVERSE_PORTAL,
+                    new Vec3d(((world.random.nextDouble() * 2d) - 1)*0.05d, ((world.random.nextDouble() * 2d) - 1)*0.02d, ((world.random.nextDouble() * 2d) - 1)*0.05d),
+                    0.01f, 5);*/
+            sendPacticlePacket(serverWorld,
+                    new Vec3d(ppos.getX()+0.5d, ppos.getY()+1.1d, ppos.getZ()+0.5d),
+                    ParticleTypes.REVERSE_PORTAL,
+                    new Vec3d(0.1d, 0.45d, 0.1d),
+                    0.01f, 10);
+        }
+        else{
+            SimpleTeleporters.LOGGER.info("No server nigger");
+        }
+    }
+
+    public static void sendPacticlePacket (ServerWorld world, Vec3d pos, ParticleEffect particleTypes, Vec3d velocityVector, float speed, int amount) {
+        // Get all players in the world
+        for (ServerPlayerEntity player : world.getPlayers()) {
+            ServerPlayNetworkHandler handler = player.networkHandler;
+            if (handler != null) {
+                handler.sendPacket(new ParticleS2CPacket(particleTypes, true, pos.x, pos.y, pos.z, (float)velocityVector.x, (float)velocityVector.y, (float)velocityVector.z, speed, amount));
             }
-        });
+        }
     }
 }
+
+
